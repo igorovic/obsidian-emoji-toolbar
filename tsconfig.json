@@ -9,6 +9,9 @@
       "noImplicitAny": true,
       "moduleResolution": "node",
       "importHelpers": true,
+      "resolveJsonModule": true,
+      "allowSyntheticDefaultImports": true,
+        "strict": true,
       "lib": [
         "dom",
         "es5",
@@ -16,8 +19,11 @@
         "es2015"
       ]
     },
-    "include": [
-      "**/*.ts"
+    "files": [
+      "main.ts"
     ]
+    //"include": [
+    //  "**/*.ts"
+    //]
   }
   

@@ -1,91 +1,108 @@
-import { App, FuzzySuggestModal, Plugin, FuzzyMatch, Notice, MarkdownView, MarkdownPostProcessor, MarkdownPostProcessorContext, MarkdownPreviewRenderer, PluginSettingTab, Setting } from 'obsidian';
-import orderedEmoji from 'unicode-emoji-json/data-ordered-emoji'
-import emojiNames from 'unicode-emoji-json/data-by-emoji'
-import twemoji from 'twemoji'
+import {
+  App,
+  FuzzySuggestModal,
+  Plugin,
+  FuzzyMatch,
+  Notice,
+  MarkdownView,
+  MarkdownPostProcessor,
+  MarkdownPostProcessorContext,
+  MarkdownPreviewRenderer,
+  PluginSettingTab,
+  Setting,
+} from "obsidian";
+import orderedEmoji from "unicode-emoji-json/data-ordered-emoji.json";
+import emojiNames from "unicode-emoji-json/data-by-emoji.json";
+
+//@ts-ignore
+import * as twemoji from "twemoji/dist/twemoji.npm";
 
 const indicatorStyle: string =
-  'color: var(--text-accent); width: 2.5em; text-align: center; float:left; font-weight:800;';
+  "color: var(--text-accent); width: 2.5em; text-align: center; float:left; font-weight:800;";
 
 interface MyPluginSettings {
   twemojiActive: boolean;
 }
 
 const DEFAULT_SETTINGS: MyPluginSettings = {
-	twemojiActive: true
-}
+  twemojiActive: true,
+};
 
+console.log("obsidian emoji loaded", orderedEmoji[0])
 export default class MyPlugin extends Plugin {
-  emojis: EmojiItem[]
-  settings: MyPluginSettings;
+  emojis: EmojiItem[] = [];
+  settings: MyPluginSettings = DEFAULT_SETTINGS;
 
   public static postprocessor: MarkdownPostProcessor = (
     el: HTMLElement,
     ctx: MarkdownPostProcessorContext
   ) => {
-    twemoji.parse(el)
-  }
+    twemoji.parse(el);
+  };
 
   loadEmojis(): EmojiItem[] {
     function titleCase(string: string) {
-      let sentence = string.toLowerCase().split('_');
+      let sentence = string.toLowerCase().split("_");
       for (let i = 0; i < sentence.length; i++) {
         sentence[i] = sentence[i][0].toUpperCase() + sentence[i].slice(1);
       }
-  
-      return sentence.join(' ');
+
+      return sentence.join(" ");
     }
 
     let items = orderedEmoji.map((name: string) => {
       return {
+        //@ts-ignore
         name: titleCase(emojiNames[name]["name"]),
         char: name,
-        imgHtml: twemoji.parse(name)
-      }
-    })
-  
+        imgHtml: twemoji.parse(name),
+      };
+    });
+
     return items;
   }
 
-	async onload() {
-
+  async onload() {
     this.emojis = this.loadEmojis();
 
-    await this.loadSettings()
+    await this.loadSettings();
 
     this.addSettingTab(new SettingsTab(this.app, this));
 
     if (this.settings.twemojiActive) {
-      MarkdownPreviewRenderer.registerPostProcessor(MyPlugin.postprocessor)
+      MarkdownPreviewRenderer.registerPostProcessor(MyPlugin.postprocessor);
     }
 
     this.addCommand({
-			id: 'emoji-picker:open-picker',
-      name: 'Open emoji picker',
+      id: "emoji-picker:open-picker",
+      name: "Open emoji picker",
       hotkeys: [],
-			checkCallback: (checking: boolean) => {
-				let leaf = this.app.workspace.activeLeaf;
-				if (leaf) {
-					if (!checking) {
-						new EmojiFuzzySuggestModal(this.app, this.emojis, this.settings).open();
-					}
-					return true;
-				}
-				return false;
-			}
-		});
-
-	}
-
-	onunload() {
+      checkCallback: (checking: boolean) => {
+        let leaf = this.app.workspace.activeLeaf;
+        if (leaf) {
+          if (!checking) {
+            new EmojiFuzzySuggestModal(
+              this.app,
+              this.emojis,
+              this.settings
+            ).open();
+          }
+          return true;
+        }
+        return false;
+      },
+    });
   }
-  
-  async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-	}
 
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
+  onunload() {}
+
+  async loadSettings() {
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+  }
+
+  async saveSettings() {
+    await this.saveData(this.settings);
+  }
 }
 
 interface EmojiItem {
@@ -94,25 +111,24 @@ interface EmojiItem {
   imgHtml: string;
 }
 
-
 class EmojiFuzzySuggestModal extends FuzzySuggestModal<EmojiItem> {
   app: App;
   emojis: EmojiItem[];
   settings: MyPluginSettings;
 
   constructor(app: App, emojis: EmojiItem[], settings: MyPluginSettings) {
-      super(app);
-      this.app = app;
-      this.emojis = emojis;
-      this.settings = settings;
+    super(app);
+    this.app = app;
+    this.emojis = emojis;
+    this.settings = settings;
   }
 
   getItems(): EmojiItem[] {
-      return this.emojis;
+    return this.emojis;
   }
 
   getItemText(item: EmojiItem): string {
-      return item.name;
+    return item.name;
   }
 
   renderSuggestion(item: FuzzyMatch<EmojiItem>, el: HTMLElement) {
@@ -121,31 +137,30 @@ class EmojiFuzzySuggestModal extends FuzzySuggestModal<EmojiItem> {
   }
 
   updateSuggestionElForMode(item: FuzzyMatch<EmojiItem>, el: HTMLElement) {
-
-    var indicatorEl = createEl('div', {
+    var indicatorEl = createEl("div", {
       attr: { style: indicatorStyle },
     });
 
     if (this.settings.twemojiActive) {
-      indicatorEl.innerHTML = item.item.imgHtml
+      indicatorEl.innerHTML = item.item.imgHtml;
     } else {
-      indicatorEl.textContent = item.item.char
+      indicatorEl.textContent = item.item.char;
     }
-    
-    el.insertAdjacentElement('afterbegin', indicatorEl);
+
+    el.insertAdjacentElement("afterbegin", indicatorEl);
   }
 
-  insertTextAtCursor(view: MarkdownView, text:string): void {
-    let editor = view.sourceMode.cmEditor
+  insertTextAtCursor(view: MarkdownView, text: string): void {
+    let editor = view.sourceMode.cmEditor;
     let doc = editor.getDoc();
     let cursor = doc.getCursor();
     doc.replaceRange(text, cursor);
   }
 
   onChooseItem(item: EmojiItem, evt: MouseEvent | KeyboardEvent): void {
-    let activeEditor = this.app.workspace.getActiveViewOfType(MarkdownView)
+    let activeEditor = this.app.workspace.getActiveViewOfType(MarkdownView);
     if (activeEditor) {
-      this.insertTextAtCursor(activeEditor, item.char)
+      this.insertTextAtCursor(activeEditor, item.char);
     } else {
       new Notice("You'll need to open a markdown editor to insert an emoji");
     }
@@ -153,36 +168,47 @@ class EmojiFuzzySuggestModal extends FuzzySuggestModal<EmojiItem> {
 }
 
 class SettingsTab extends PluginSettingTab {
-	plugin: MyPlugin;
+  plugin: MyPlugin;
 
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
+  constructor(app: App, plugin: MyPlugin) {
+    super(app, plugin);
+    this.plugin = plugin;
+  }
 
-	display(): void {
-		let {containerEl} = this;
+  display(): void {
+    let { containerEl } = this;
 
-		containerEl.empty();
+    containerEl.empty();
 
-    containerEl.createEl('h1', {text: 'Emoji Toolbar'});
-    containerEl.createEl('a', { text: 'Created by oliveryh', href: 'https://github.com/oliveryh/'}));
+    containerEl.createEl("h1", { text: "Emoji Toolbar" });
+    containerEl.createEl("a", {
+      text: "Created by oliveryh",
+      href: "https://github.com/oliveryh/",
+    });
 
-    containerEl.createEl('h2', {text: 'Settings'});
+    containerEl.createEl("h2", { text: "Settings" });
 
-		new Setting(containerEl)
-			.setName('Twitter Emoji')
-      .setDesc('Improved emoji support. Note: this applies to emoji search and preview only.')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.twemojiActive)
-				.onChange(async (value) => {
-					this.plugin.settings.twemojiActive = value;
-          await this.plugin.saveSettings();
-          if (value) {
-            MarkdownPreviewRenderer.registerPostProcessor(MyPlugin.postprocessor)
-          } else {
-            MarkdownPreviewRenderer.unregisterPostProcessor(MyPlugin.postprocessor)
-          }
-				}));
-	}
+    new Setting(containerEl)
+      .setName("Twitter Emoji")
+      .setDesc(
+        "Improved emoji support. Note: this applies to emoji search and preview only."
+      )
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.twemojiActive)
+          .onChange(async (value) => {
+            this.plugin.settings.twemojiActive = value;
+            await this.plugin.saveSettings();
+            if (value) {
+              MarkdownPreviewRenderer.registerPostProcessor(
+                MyPlugin.postprocessor
+              );
+            } else {
+              MarkdownPreviewRenderer.unregisterPostProcessor(
+                MyPlugin.postprocessor
+              );
+            }
+          })
+      );
+  }
 }
